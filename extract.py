@@ -1,34 +1,91 @@
 import requests
 from requests.auth import HTTPBasicAuth
+from collections import defaultdict
 
 # Jira API details
 JIRA_DOMAIN = "honeyinsurance.atlassian.net"  # Replace with your Jira domain
-BOARD_ID = "45"  # Replace with your board ID
-EMAIL = "rudy@rudy.com"  # Replace with your Jira email
-API_TOKEN = "your-api-token"  # Replace with your Jira API token
+SPRINT_ID = "750"  # Replace with your board ID
+EMAIL = "rudy@honey.com"  # Replace with your Jira email
+API_TOKEN = "xxxx"  # Replace with your Jira API token
+MAX_RESULTS = 50
 
-# Jira API endpoint for fetching board issues
-URL = f"https://{JIRA_DOMAIN}/rest/agile/1.0/board/{BOARD_ID}/issue"
+# URLs
+SPRINT_ISSUES_URL = f"https://{JIRA_DOMAIN}/rest/agile/1.0/sprint/{SPRINT_ID}/issue?maxResults={MAX_RESULTS}"
+ISSUE_DETAILS_URL = f"https://{JIRA_DOMAIN}/rest/api/2/issue"
 
 # Headers
 HEADERS = {
     "Accept": "application/json"
 }
 
-# Make the request
+def get_issue_details(issue_key):
+    """Fetch detailed information for an issue by its key."""
+    url = f"{ISSUE_DETAILS_URL}/{issue_key}"
+    response = requests.get(url, headers=HEADERS, auth=HTTPBasicAuth(EMAIL, API_TOKEN))
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print(f"Failed to fetch details for issue {issue_key}. Status code: {response.status_code}")
+        return None
+
 try:
+    # Fetch issues in the sprint
     response = requests.get(
-        URL,
+        SPRINT_ISSUES_URL,
         headers=HEADERS,
         auth=HTTPBasicAuth(EMAIL, API_TOKEN)
     )
 
-    # Check the response status
     if response.status_code == 200:
         issues = response.json()
         print("Issues retrieved successfully!")
+        
+        final_tickets = []
+        story_points_by_status = defaultdict(float)  # Initialize defaultdict for story points aggregation
+
         for issue in issues.get("issues", []):
-            print(f"- {issue['key']}: {issue['fields']['summary']}")
+            # Get normal ticket information
+            story_points = issue["fields"].get("customfield_10016", 0)  # Adjust field ID for story points
+            status = issue["fields"]["status"]["name"]
+
+            # Check if there are subtasks
+            subtasks = issue["fields"].get("subtasks", [])
+            if subtasks:
+                for subtask in subtasks:
+                    # Fetch detailed information for the subtask
+                    subtask_details = get_issue_details(subtask["key"])
+                    if subtask_details:
+                        subtask_points = subtask_details["fields"].get("customfield_10016", 0)
+                        subtask_status = subtask_details["fields"]["status"]["name"]
+                        if subtask_points:
+                            story_points_by_status[subtask_status] += subtask_points
+
+                        # Add subtasks to final tickets
+                        final_tickets.append({
+                            "key": subtask["key"],
+                            "summary": subtask_details["fields"]["summary"]
+                        })
+            else:
+                # Add story points for the normal ticket
+                if story_points:
+                    story_points_by_status[status] += story_points
+
+                # Add the normal ticket to final tickets
+                final_tickets.append({
+                    "key": issue["key"],
+                    "summary": issue["fields"]["summary"]
+                })
+
+        # Print the processed tickets
+        print("Tickets and Subtasks:")
+        for ticket in final_tickets:
+            print(f"- {ticket['key']}: {ticket['summary']}")
+
+        # Print the total story points by status
+        print("\nStory Points by Status:")
+        for status, total_points in story_points_by_status.items():
+            print(f"- {status}: {total_points} story points")
+
     else:
         print(f"Failed to retrieve issues. Status code: {response.status_code}")
         print(f"Error message: {response.text}")
