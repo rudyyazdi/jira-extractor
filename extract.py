@@ -8,7 +8,7 @@ import os
 load_dotenv()
 
 # Jira API details
-JIRA_DOMAIN = "honeyinsurance.atlassian.net"  # Replace with your Jira domain
+JIRA_DOMAIN = os.getenv("JIRA_DOMAIN")
 SPRINT_ID = "750"  # Replace with your board ID
 MAX_RESULTS = 50
 
