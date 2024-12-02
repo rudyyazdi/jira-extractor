@@ -1,12 +1,15 @@
 import requests
 from requests.auth import HTTPBasicAuth
 from collections import defaultdict
+from dotenv import load_dotenv
+import os
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Jira API details
 JIRA_DOMAIN = "honeyinsurance.atlassian.net"  # Replace with your Jira domain
 SPRINT_ID = "750"  # Replace with your board ID
-EMAIL = "rudy@honey.com"  # Replace with your Jira email
-API_TOKEN = "xxxx"  # Replace with your Jira API token
 MAX_RESULTS = 50
 
 # URLs
@@ -18,10 +21,12 @@ HEADERS = {
     "Accept": "application/json"
 }
 
+AUTH = HTTPBasicAuth(os.getenv('JIRA_EMAIL'), os.getenv("JIRA_API_TOKEN"))
+
 def get_issue_details(issue_key):
     """Fetch detailed information for an issue by its key."""
     url = f"{ISSUE_DETAILS_URL}/{issue_key}"
-    response = requests.get(url, headers=HEADERS, auth=HTTPBasicAuth(EMAIL, API_TOKEN))
+    response = requests.get(url, headers=HEADERS, auth=AUTH)
     if response.status_code == 200:
         return response.json()
     else:
@@ -33,7 +38,7 @@ try:
     response = requests.get(
         SPRINT_ISSUES_URL,
         headers=HEADERS,
-        auth=HTTPBasicAuth(EMAIL, API_TOKEN)
+        auth=AUTH
     )
 
     if response.status_code == 200:
