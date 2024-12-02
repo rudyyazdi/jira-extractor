@@ -19,6 +19,7 @@ This README provides instructions on how to set up and run the JIRA Extractor on
 1. **Get the api token from JIRA:**
 
 - Go to [Atlassian Account](https://id.atlassian.com/manage-profile/security/api-tokens) and create an API token.
+- Copy `.env.example` to `.env`: `cp .env.example .env`
 - Replace the `JIRA_API_TOKEN` in the .env file with the generated API token.
 - Replace the `JIRA_EMAIL` in the .env file with the email address associated with the JIRA account.
 - Replace the `JIRA_DOMAIN` in the .env file with the JIRA domain.
