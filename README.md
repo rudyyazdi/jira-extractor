@@ -61,7 +61,3 @@ To deactivate the virtual environment, simply run:
 ```sh
 deactivate
 ```
-
-## Additional Information
-
-For more details on how to configure and use the JIRA Extractor, please refer to the documentation within the repository.
