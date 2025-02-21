@@ -1,3 +1,21 @@
+"""
+My TODOs Script
+
+This script lists all TODO tickets assigned to you in a specific Jira board.
+It automatically detects TODO/Open/Backlog columns from the board configuration
+and outputs ticket numbers in a format suitable for piping to other scripts.
+
+Usage:
+    python my_todos.py BOARD_NUMBER
+
+Example:
+    python my_todos.py 90
+
+Chaining Example:
+    # Get all your TODO tickets and create mirrors for them
+    python my_todos.py 90 | xargs python create_mirror.py
+"""
+
 import requests
 from requests.auth import HTTPBasicAuth
 from dotenv import load_dotenv
@@ -105,7 +123,7 @@ def format_issue(issue):
 def main():
     if len(sys.argv) != 2:
         print("Usage: python my_todos.py BOARD_NUMBER")
-        print("Example: python my_todos.py 69")
+        print("Example: python my_todos.py 90")
         sys.exit(1)
 
     try:

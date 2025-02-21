@@ -1,3 +1,16 @@
+"""
+Show Description Script
+
+This script fetches and displays the description of a Jira ticket.
+It formats the output nicely and includes the ticket summary.
+
+Usage:
+    python show_description.py TICKET-123
+
+Example:
+    python show_description.py EXMP-152
+"""
+
 import requests
 from requests.auth import HTTPBasicAuth
 from dotenv import load_dotenv

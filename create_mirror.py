@@ -1,9 +1,31 @@
+"""
+Create Mirror Script
+
+This script creates mirror tickets in a specified board for given Jira tickets.
+It copies the title and description, creates a link between the tickets,
+and prevents duplicate mirrors.
+
+Features:
+- Creates mirror tickets with same title and description
+- Links mirror tickets to originals
+- Prevents duplicate mirrors
+- Can handle multiple tickets at once
+
+Usage:
+    python create_mirror.py -b TARGET_BOARD TICKET-123 [TICKET-456 TICKET-789 ...]
+
+Example:
+    python create_mirror.py -b EXMP EXMP-152
+    python create_mirror.py -b DEV EXMP-152 EXMP-153 EXMP-154
+"""
+
 import requests
 from requests.auth import HTTPBasicAuth
 from dotenv import load_dotenv
 import os
 import sys
 import json
+import argparse
 
 # Load environment variables from .env file
 load_dotenv()
@@ -31,7 +53,7 @@ def get_issue_details(issue_key):
         print(f"Failed to fetch details for issue {issue_key}. Status code: {response.status_code}")
         return None
 
-def check_existing_links(issue_key):
+def check_existing_links(issue_key, target_board):
     """Check if the issue already has a mirror link."""
     issue = get_issue_details(issue_key)
     if not issue:
@@ -41,12 +63,12 @@ def check_existing_links(issue_key):
     for link in links:
         if link.get('type', {}).get('name') in ['Relates', 'Mirrors']:
             linked_issue = link.get('outwardIssue') or link.get('inwardIssue')
-            if linked_issue and linked_issue.get('key', '').startswith('PET-'):
+            if linked_issue and linked_issue.get('key', '').startswith(f'{target_board}-'):
                 print(f"Mirror link already exists: {linked_issue['key']}")
                 return True
     return False
 
-def create_mirror_issue(source_issue, project_key="PET"):
+def create_mirror_issue(source_issue, project_key):
     """Create a mirror issue in the target project."""
     fields = source_issue['fields']
     
@@ -102,12 +124,12 @@ def create_issue_link(source_key, target_key):
         print(f"Error: {response.text}")
         return False
 
-def process_ticket(source_key):
+def process_ticket(source_key, target_board):
     """Process a single ticket to create its mirror."""
     print(f"\nProcessing ticket: {source_key}")
     
     # Check if mirror already exists
-    if check_existing_links(source_key):
+    if check_existing_links(source_key, target_board):
         print("Mirror ticket already exists. Skipping creation.")
         return False
     
@@ -119,7 +141,7 @@ def process_ticket(source_key):
     
     # Create mirror issue
     print(f"Creating mirror issue for {source_key}...")
-    mirror_issue = create_mirror_issue(source_issue)
+    mirror_issue = create_mirror_issue(source_issue, target_board)
     if not mirror_issue:
         print(f"Failed to process {source_key}")
         return False
@@ -137,16 +159,17 @@ def process_ticket(source_key):
         return False
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python create_mirror.py TICKET-123 [TICKET-456 TICKET-789 ...]")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description='Create mirror tickets in a specified board.')
+    parser.add_argument('-b', '--board', required=True, help='Target board/project key (e.g., EXMP, DEV)')
+    parser.add_argument('tickets', nargs='+', help='One or more ticket keys to mirror')
     
-    # Process all tickets provided as arguments
-    source_keys = [key.upper() for key in sys.argv[1:]]
+    args = parser.parse_args()
+    target_board = args.board.upper()
+    source_keys = [key.upper() for key in args.tickets]
     
     results = []
     for key in source_keys:
-        success = process_ticket(key)
+        success = process_ticket(key, target_board)
         results.append((key, success))
     
     # Print summary
