@@ -102,28 +102,27 @@ def create_issue_link(source_key, target_key):
         print(f"Error: {response.text}")
         return False
 
-def main():
-    if len(sys.argv) != 2:
-        print("Usage: python create_mirror.py TICKET-123")
-        sys.exit(1)
-    
-    source_key = sys.argv[1].upper()
+def process_ticket(source_key):
+    """Process a single ticket to create its mirror."""
+    print(f"\nProcessing ticket: {source_key}")
     
     # Check if mirror already exists
     if check_existing_links(source_key):
         print("Mirror ticket already exists. Skipping creation.")
-        sys.exit(0)
+        return False
     
     # Get source issue details
     source_issue = get_issue_details(source_key)
     if not source_issue:
-        sys.exit(1)
+        print(f"Failed to process {source_key}")
+        return False
     
     # Create mirror issue
     print(f"Creating mirror issue for {source_key}...")
     mirror_issue = create_mirror_issue(source_issue)
     if not mirror_issue:
-        sys.exit(1)
+        print(f"Failed to process {source_key}")
+        return False
     
     mirror_key = mirror_issue['key']
     print(f"Created mirror issue: {mirror_key}")
@@ -132,8 +131,30 @@ def main():
     print("Creating link between issues...")
     if create_issue_link(source_key, mirror_key):
         print(f"Successfully created mirror ticket {mirror_key} and linked it to {source_key}")
+        return True
     else:
         print("Failed to create link between issues")
+        return False
+
+def main():
+    if len(sys.argv) < 2:
+        print("Usage: python create_mirror.py TICKET-123 [TICKET-456 TICKET-789 ...]")
+        sys.exit(1)
+    
+    # Process all tickets provided as arguments
+    source_keys = [key.upper() for key in sys.argv[1:]]
+    
+    results = []
+    for key in source_keys:
+        success = process_ticket(key)
+        results.append((key, success))
+    
+    # Print summary
+    print("\nSummary:")
+    print("-" * 50)
+    for key, success in results:
+        status = "✓ Success" if success else "✗ Skipped/Failed"
+        print(f"{key}: {status}")
 
 if __name__ == "__main__":
     main() 
