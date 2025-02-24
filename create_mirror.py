@@ -10,13 +10,14 @@ Features:
 - Links mirror tickets to originals
 - Prevents duplicate mirrors
 - Can handle multiple tickets at once
+- Optional labels can be added to mirror tickets
 
 Usage:
-    python create_mirror.py -b TARGET_BOARD TICKET-123 [TICKET-456 TICKET-789 ...]
+    python create_mirror.py -b TARGET_BOARD [-l LABEL1 [LABEL2 ...]] TICKET-123 [TICKET-456 TICKET-789 ...]
 
 Example:
     python create_mirror.py -b EXMP EXMP-152
-    python create_mirror.py -b DEV EXMP-152 EXMP-153 EXMP-154
+    python create_mirror.py -b DEV -l mirror automated EXMP-152 EXMP-153 EXMP-154
 """
 
 import requests
@@ -68,7 +69,7 @@ def check_existing_links(issue_key, target_board):
                 return True
     return False
 
-def create_mirror_issue(source_issue, project_key):
+def create_mirror_issue(source_issue, project_key, labels=None):
     """Create a mirror issue in the target project."""
     fields = source_issue['fields']
     
@@ -81,6 +82,10 @@ def create_mirror_issue(source_issue, project_key):
             "issuetype": {"name": "Task"}  # You might want to adjust this based on available issue types
         }
     }
+
+    # Add labels if provided
+    if labels:
+        payload["fields"]["labels"] = labels
     
     response = requests.post(
         ISSUE_API_URL,
@@ -124,7 +129,7 @@ def create_issue_link(source_key, target_key):
         print(f"Error: {response.text}")
         return False
 
-def process_ticket(source_key, target_board):
+def process_ticket(source_key, target_board, labels=None):
     """Process a single ticket to create its mirror."""
     print(f"\nProcessing ticket: {source_key}")
     
@@ -141,7 +146,7 @@ def process_ticket(source_key, target_board):
     
     # Create mirror issue
     print(f"Creating mirror issue for {source_key}...")
-    mirror_issue = create_mirror_issue(source_issue, target_board)
+    mirror_issue = create_mirror_issue(source_issue, target_board, labels)
     if not mirror_issue:
         print(f"Failed to process {source_key}")
         return False
@@ -161,6 +166,7 @@ def process_ticket(source_key, target_board):
 def main():
     parser = argparse.ArgumentParser(description='Create mirror tickets in a specified board.')
     parser.add_argument('-b', '--board', required=True, help='Target board/project key (e.g., EXMP, DEV)')
+    parser.add_argument('-l', '--labels', nargs='+', help='Optional labels to add to mirror tickets')
     parser.add_argument('tickets', nargs='+', help='One or more ticket keys to mirror')
     
     args = parser.parse_args()
@@ -169,7 +175,7 @@ def main():
     
     results = []
     for key in source_keys:
-        success = process_ticket(key, target_board)
+        success = process_ticket(key, target_board, args.labels)
         results.append((key, success))
     
     # Print summary

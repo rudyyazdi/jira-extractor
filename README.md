@@ -8,7 +8,7 @@ A collection of scripts to help with Jira ticket management.
 
 ```bash
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate
 ```
 
 2. Install dependencies:
