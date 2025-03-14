@@ -83,6 +83,10 @@ def create_mirror_issue(source_issue, project_key, labels=None):
         }
     }
 
+    # Add due date if it exists in the source issue
+    if fields.get('duedate'):
+        payload["fields"]["duedate"] = fields['duedate']
+
     # Add labels if provided
     if labels:
         payload["fields"]["labels"] = labels
